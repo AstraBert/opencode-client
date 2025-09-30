@@ -17,6 +17,7 @@ class Session:
     projectID: str
     directory: str
     time: Time
+    parentID: str = ""
 
 @dataclass
 class TextPart:

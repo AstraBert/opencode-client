@@ -26,7 +26,7 @@ class OpenCodeClient:
 
     async def create_current_session(self, title: Optional[str] = None, parent_id: Optional[str] = None) -> Session:
         async with self._get_client() as client:
-            res = await client.post("/session", json={"parentID": parent_id, "title": title})
+            res = await client.post("/session", json={"parentID": parent_id or "", "title": title})
             res.raise_for_status()
             self._current_session = Session(**res.json())
             return self._current_session
