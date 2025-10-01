@@ -15,6 +15,7 @@ class OpenCodeClient:
         self.timeout = timeout
         self._current_session: Optional[Session] = None
         self.chat_history: List[Union[UserMessage, AssistantMessage]] = []
+        self.string_chat_history: List[str] = []
     
     @asynccontextmanager
     async def _get_client(self) -> AsyncIterator[httpx.AsyncClient]:
@@ -57,9 +58,13 @@ class OpenCodeClient:
             res.raise_for_status()
 
     async def _send_message_to_session(self, session_id: str, message: UserMessage) -> AssistantMessage:
-        async with self._get_client() as client:
-            print(asdict(message))
-            res = await client.post(f"/session/{session_id}/message", json=asdict(message))
+        message_dict = asdict(message)
+        message_dict_copy = message_dict.copy()
+        for k,v in message_dict.items():
+            if v == type(v)():
+                message_dict_copy.pop(k)
+        async with self._get_client() as client:      
+            res = await client.post(f"/session/{session_id}/message", json=message_dict_copy)
             res.raise_for_status()
             return AssistantMessage(**res.json())
 
@@ -142,8 +147,10 @@ class OpenCodeClient:
                         warnings.warn(f"It was not possible to include file {file} as FilePart because of: {e}")
         user_message = UserMessage(modelID=self.model, providerID=self.model_provider, parts=parts, system=system_message or "")
         self.chat_history.append(user_message)    
+        self.string_chat_history.append(user_message.to_string(include_system_prompt=True))
         assistant_message = await self._send_message_to_session(session_id=session_id, message=user_message)
         self.chat_history.append(assistant_message)
+        self.string_chat_history.append(assistant_message.to_string())
         return assistant_message
     
     async def search_file_by_name(self, name: str) -> List[str]:

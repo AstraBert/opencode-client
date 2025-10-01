@@ -93,6 +93,25 @@ class UserMessage:
     system: str = ""
     tools: Dict[str, bool] = field(default_factory=dict)
 
+    def to_string(self, include_system_prompt: bool=False):
+        s = "<user>"
+        if include_system_prompt and self.system:
+            s+=f"\n\t<system>{self.system}</system>\n"
+        for part in self.parts:
+            if isinstance(part, TextPart):
+                s+=f"\n\t<text>{part.text}</text>\n"
+            else:
+                if part.source != {}:
+                    if isinstance(part.source, FileSource):
+                        file_content = part.source.text.value
+                    else:
+                        file_content = part.source.get("text", {}).get("value", "")
+                else:
+                    file_content = part.filename if part.filename else part.url
+                s+=f"\n\t<file>{file_content}</file>\n"
+        s+="</user>"
+        return s
+            
 class AssistantMessageInfoPath(TypedDict):
     cwd: str
     root: str
@@ -147,4 +166,19 @@ class AssistantMessageStepWithText(TypedDict):
 class AssistantMessage:
     info: AssistantMessageInfo
     parts: List[Union[AssistantMessageStepStart, AssistantMessageStepWithText, AssistantMessageStepFinish]]
-    bloked: bool
+    blocked: bool
+
+    def to_string(self, include_system_prompt: bool = False) -> str:
+        s = "<assistant>"
+        if include_system_prompt:
+            for text in self.info["system"]:
+                s+=f"\n\t<system>{text}</system>\n"
+        for part in self.parts:
+            if "text" in part:
+                if part["type"] == "reasoning":
+                    s+=f"\n\t<reasoning>{part['text']}</reasoning>\n"
+                else:
+                    s+=f"\n\t<answer>{part['text']}</answer>\n"
+        s+="</assistant>"
+        return s
+
