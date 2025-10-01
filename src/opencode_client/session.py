@@ -1,8 +1,8 @@
 import os
 import mimetypes
 
-from dataclasses import dataclass
-from typing import Optional, List, Union, Dict, TypedDict
+from dataclasses import dataclass, field
+from typing import List, Union, Dict, TypedDict
 from pathlib import Path
 
 class Time(TypedDict):
@@ -59,9 +59,9 @@ class FilePart:
     mime: str
     url: str
     type: str = "file"
-    id: Optional[str] = None
-    filename: Optional[str] = None
-    source: Optional[FileSource] = None
+    id: str = ""
+    filename: str = ""
+    source: FileSource | dict = field(default_factory=dict)
 
     @classmethod
     def from_file(cls, file: str):
@@ -88,10 +88,10 @@ class UserMessage:
     modelID: str
     providerID: str
     parts: List[Union[TextPart, FilePart]]
-    messageID: Optional[str] = None
-    mode: Optional[str] = None
-    system: Optional[str] = None
-    tools: Optional[Dict[str, bool]] = None
+    messageID: str = ""
+    mode: str = "build"
+    system: str = ""
+    tools: Dict[str, bool] = field(default_factory=dict)
 
 class AssistantMessageInfoPath(TypedDict):
     cwd: str

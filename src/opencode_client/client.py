@@ -58,6 +58,7 @@ class OpenCodeClient:
 
     async def _send_message_to_session(self, session_id: str, message: UserMessage) -> AssistantMessage:
         async with self._get_client() as client:
+            print(asdict(message))
             res = await client.post(f"/session/{session_id}/message", json=asdict(message))
             res.raise_for_status()
             return AssistantMessage(**res.json())
@@ -139,7 +140,7 @@ class OpenCodeClient:
                         parts.append(FilePart.from_file(file))
                     except ValueError as e:
                         warnings.warn(f"It was not possible to include file {file} as FilePart because of: {e}")
-        user_message = UserMessage(modelID=self.model, providerID=self.model_provider, parts=parts, system=system_message)
+        user_message = UserMessage(modelID=self.model, providerID=self.model_provider, parts=parts, system=system_message or "")
         self.chat_history.append(user_message)    
         assistant_message = await self._send_message_to_session(session_id=session_id, message=user_message)
         self.chat_history.append(assistant_message)
