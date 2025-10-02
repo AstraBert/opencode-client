@@ -2,7 +2,8 @@ import os
 import mimetypes
 
 from dataclasses import dataclass, field
-from typing import List, Union, Dict, TypedDict, Any, NotRequired
+from typing import List, Union, Dict, TypedDict, Any, Optional
+from typing_extensions import NotRequired
 from pathlib import Path
 
 
@@ -28,7 +29,7 @@ class TextPart:
     type: str = "text"
 
     @classmethod
-    def from_string(cls, string: str):
+    def from_string(cls, string: str) -> "TextPart":
         return cls(text=string)
 
 
@@ -39,7 +40,7 @@ class FileSourceText:
     value: str
 
     @classmethod
-    def from_file(cls, file: str):
+    def from_file(cls, file: str) -> "FileSourceText":
         with open(file, "r") as f:
             content = f.read()
         return cls(start=0, end=len(content), value=content)
@@ -52,11 +53,11 @@ class FileSource:
     type: str = "file"
 
     @classmethod
-    def from_file(cls, file: str):
+    def from_file(cls, file: str) -> "FileSource":
         return cls(path=file, text=FileSourceText.from_file(file), type="file")
 
 
-def _raw_guess_mimetypes(file: str):
+def _raw_guess_mimetypes(file: str) -> Optional[str]:
     mime_type, _ = mimetypes.guess_type(file)
     return mime_type
 
@@ -71,7 +72,7 @@ class FilePart:
     source: FileSource | dict = field(default_factory=dict)
 
     @classmethod
-    def from_file(cls, file: str):
+    def from_file(cls, file: str) -> "FilePart":
         abs_path = str(Path(file).resolve())
         if os.path.exists(abs_path) and os.path.isfile(abs_path):
             mimetype = _raw_guess_mimetypes(abs_path)
@@ -92,7 +93,7 @@ class FilePart:
             raise ValueError("The provided file does not exist")
 
     @classmethod
-    def from_url(cls, url: str):
+    def from_url(cls, url: str) -> "FilePart":
         mimetype = _raw_guess_mimetypes(url)
         if not mimetype:
             raise ValueError(
@@ -111,7 +112,7 @@ class UserMessage:
     system: str = ""
     tools: Dict[str, bool] = field(default_factory=dict)
 
-    def to_string(self, include_system_prompt: bool = False):
+    def to_string(self, include_system_prompt: bool = False) -> str:
         s = "<user>"
         if include_system_prompt and self.system:
             s += f"\n\t<system>{self.system}</system>\n"
@@ -211,8 +212,8 @@ class AssistantMessage:
         for part in self.parts:
             if "text" in part:
                 if part["type"] == "reasoning":
-                    s += f"\n\t<reasoning>{part['text']}</reasoning>\n"
+                    s += f"\n\t<reasoning>{part['text']}</reasoning>\n"  # type: ignore
                 else:
-                    s += f"\n\t<answer>{part['text']}</answer>\n"
+                    s += f"\n\t<answer>{part['text']}</answer>\n"  # type: ignore
         s += "</assistant>"
         return s

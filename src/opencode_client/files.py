@@ -1,4 +1,4 @@
-from typing import Literal, Any
+from typing import Literal, Any, Dict
 from dataclasses import dataclass
 
 
@@ -15,7 +15,7 @@ class File:
 
 @dataclass
 class Match:
-    path: str
+    path: Dict[str, str]
     lines: Any
     line_number: int
     absolute_offset: int

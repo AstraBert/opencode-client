@@ -1,1 +1,9 @@
-This is a test
+# OpenCode Client
+
+A Python client for interacting with the [OpenCode](https://opencode.ai) server, enabling programmatic access to AI-powered coding sessions with file operations and conversation history.
+
+## Installation
+
+```bash
+pip install opencode-client
+```

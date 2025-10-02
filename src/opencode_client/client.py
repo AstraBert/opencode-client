@@ -3,7 +3,7 @@ import warnings
 
 from dataclasses import asdict
 from pathlib import Path
-from typing import AsyncIterator, Optional, Union, List, cast
+from typing import AsyncIterator, Optional, Union, List, cast, Dict
 from contextlib import asynccontextmanager
 from .session import Session, UserMessage, AssistantMessage, TextPart, FilePart
 from .files import FileOperation, File, Match, FileInfo
@@ -27,6 +27,7 @@ class OpenCodeClient:
         self.model_provider = model_provider
         self.model = model
         self.timeout = timeout
+        self._sessions: Dict[str, Session] = {}
         self._current_session: Optional[Session] = None
         self.chat_history: List[Union[UserMessage, AssistantMessage]] = []
         self.string_chat_history: List[str] = []
@@ -58,6 +59,7 @@ class OpenCodeClient:
             )
             res.raise_for_status()
             self._current_session = Session(**res.json())
+            self._sessions.update({self._current_session.id: self._current_session})
             return self._current_session
 
     async def list_sessions(self) -> list[Session]:
@@ -75,28 +77,35 @@ class OpenCodeClient:
                 sessions.append(Session(**session))
             return sessions
 
-    async def _delete_session(self, session_id: str):
+    async def _delete_session(self, session_id: str) -> None:
         """Deletes a session by ID.
 
         Args:
             session_id (str): Session ID to delete.
         """
+        if session_id in self._sessions:
+            self._sessions.pop(session_id)
         async with self._get_client() as client:
             res = await client.delete(f"/session/{session_id}")
             res.raise_for_status()
 
-    async def _update_session(self, session_id: str, title: str):
+    async def _update_session(self, session_id: str, title: str) -> Optional[Session]:
         """Updates session title.
 
         Args:
             session_id (str): Session ID to update.
             title (str): New session title.
         """
+        if session_id in self._sessions:
+            self._sessions[session_id].title = title
+        if session_id == self._current_session.id:  # type: ignore
+            self._current_session.title = title  # type: ignore
         async with self._get_client() as client:
             res = await client.patch(f"/session/{session_id}", json={"title": title})
             res.raise_for_status()
+        return self._sessions.get(session_id)
 
-    async def _abort_session(self, session_id: str):
+    async def _abort_session(self, session_id: str) -> None:
         """Aborts a running session.
 
         Args:
@@ -190,7 +199,7 @@ class OpenCodeClient:
 
     async def update_session(
         self, session_id: Optional[str] = None, title: Optional[str] = None
-    ) -> None:
+    ) -> Optional[Session]:
         """Updates session title by ID or current session.
 
         Args:
@@ -198,7 +207,7 @@ class OpenCodeClient:
             title (Optional[str]): New session title.
         """
         if not title:
-            return
+            return None
         else:
             session_id = session_id or (
                 self._current_session.id if self._current_session else None
@@ -207,7 +216,7 @@ class OpenCodeClient:
                 raise ValueError(
                     "No session ID provided and no session ID available from current session"
                 )
-            await self._update_session(session_id, title)
+            return await self._update_session(session_id, title)
 
     async def abort_session(self, session_id: Optional[str] = None) -> None:
         """Aborts session by ID or current session.
@@ -249,7 +258,7 @@ class OpenCodeClient:
             raise ValueError(
                 "No session ID provided and no session ID available from current session"
             )
-        parts = []
+        parts: List[Union[FilePart, TextPart]] = []
         if isinstance(text, list):
             for t in text:
                 parts.append(TextPart.from_string(t))
