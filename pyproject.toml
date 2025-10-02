@@ -1,3 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.18.2",
+  "pre-commit>=4.3.0",
+  "pytest>=8.4.2",
+  "pytest-asyncio>=1.2.0",
+  "ruff>=0.13.2"
+]
+
 [project]
 name = "opencode-client"
 version = "0.1.0"
@@ -5,5 +18,22 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "httpx>=0.28.1",
+  "httpx>=0.28.1"
+]
+
+[tool.hatch.build.targets.wheel]
+only-include = ["src/text_to_sql_workflow"]
+
+[tool.hatch.build.targets.wheel.sources]
+"src" = ""
+
+[tool.mypy]
+disable_error_code = ["import-not-found", "import-untyped"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+addopts = [
+  "-s",
+  "-v",
+  "--tb=short"
 ]

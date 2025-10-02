@@ -2,22 +2,25 @@ import os
 import mimetypes
 
 from dataclasses import dataclass, field
-from typing import List, Union, Dict, TypedDict
+from typing import List, Union, Dict, TypedDict, Any, NotRequired
 from pathlib import Path
+
 
 class Time(TypedDict):
     created: int
     updated: int
 
+
 @dataclass
 class Session:
     id: str
-    title: str 
+    title: str
     version: str
     projectID: str
     directory: str
     time: Time
     parentID: str = ""
+
 
 @dataclass
 class TextPart:
@@ -27,6 +30,7 @@ class TextPart:
     @classmethod
     def from_string(cls, string: str):
         return cls(text=string)
+
 
 @dataclass
 class FileSourceText:
@@ -40,7 +44,8 @@ class FileSourceText:
             content = f.read()
         return cls(start=0, end=len(content), value=content)
 
-@dataclass 
+
+@dataclass
 class FileSource:
     path: str
     text: FileSourceText
@@ -50,9 +55,11 @@ class FileSource:
     def from_file(cls, file: str):
         return cls(path=file, text=FileSourceText.from_file(file), type="file")
 
+
 def _raw_guess_mimetypes(file: str):
     mime_type, _ = mimetypes.guess_type(file)
     return mime_type
+
 
 @dataclass
 class FilePart:
@@ -69,20 +76,31 @@ class FilePart:
         if os.path.exists(abs_path) and os.path.isfile(abs_path):
             mimetype = _raw_guess_mimetypes(abs_path)
             if not mimetype:
-                raise ValueError("It was not possible to guess the mimetype for your file from the provided path")
+                raise ValueError(
+                    "It was not possible to guess the mimetype for your file from the provided path"
+                )
             if not mimetype.startswith("text/"):
                 raise ValueError(f"Unsopported type: {mimetype}")
-            return cls(mime=mimetype, url="file://"+abs_path, type="file", filename=file, source=FileSource.from_file(abs_path))
+            return cls(
+                mime=mimetype,
+                url="file://" + abs_path,
+                type="file",
+                filename=file,
+                source=FileSource.from_file(abs_path),
+            )
         else:
             raise ValueError("The provided file does not exist")
-    
+
     @classmethod
     def from_url(cls, url: str):
         mimetype = _raw_guess_mimetypes(url)
         if not mimetype:
-            raise ValueError("It was not possible to guess the mimetype for your file from the provided URL")
+            raise ValueError(
+                "It was not possible to guess the mimetype for your file from the provided URL"
+            )
         return cls(url=url, mime=mimetype)
-        
+
+
 @dataclass
 class UserMessage:
     modelID: str
@@ -93,13 +111,13 @@ class UserMessage:
     system: str = ""
     tools: Dict[str, bool] = field(default_factory=dict)
 
-    def to_string(self, include_system_prompt: bool=False):
+    def to_string(self, include_system_prompt: bool = False):
         s = "<user>"
         if include_system_prompt and self.system:
-            s+=f"\n\t<system>{self.system}</system>\n"
+            s += f"\n\t<system>{self.system}</system>\n"
         for part in self.parts:
             if isinstance(part, TextPart):
-                s+=f"\n\t<text>{part.text}</text>\n"
+                s += f"\n\t<text>{part.text}</text>\n"
             else:
                 if part.source != {}:
                     if isinstance(part.source, FileSource):
@@ -108,17 +126,20 @@ class UserMessage:
                         file_content = part.source.get("text", {}).get("value", "")
                 else:
                     file_content = part.filename if part.filename else part.url
-                s+=f"\n\t<file>{file_content}</file>\n"
-        s+="</user>"
+                s += f"\n\t<file>{file_content}</file>\n"
+        s += "</user>"
         return s
-            
+
+
 class AssistantMessageInfoPath(TypedDict):
     cwd: str
     root: str
 
-class  AssistantMessageInfoTokensCache(TypedDict):
+
+class AssistantMessageInfoTokensCache(TypedDict):
     read: int
     write: int
+
 
 class AssistantMessageInfoTokens(TypedDict):
     input: int
@@ -126,9 +147,11 @@ class AssistantMessageInfoTokens(TypedDict):
     reasoning: int
     cache: AssistantMessageInfoTokensCache
 
+
 class AssistantMessageInfoTime(TypedDict):
     started: int
-    completed: int
+    completed: NotRequired[int]
+
 
 class AssistantMessageInfo(TypedDict):
     id: str
@@ -141,12 +164,16 @@ class AssistantMessageInfo(TypedDict):
     providerID: str
     time: AssistantMessageInfoTime
     sessionID: str
+    error: NotRequired[Any]
+    summary: NotRequired[bool]
+
 
 class AssistantMessageStepStart(TypedDict):
     id: str
     messageID: str
     sessionID: str
     type: str
+
 
 class AssistantMessageStepFinish(TypedDict):
     id: str
@@ -155,6 +182,7 @@ class AssistantMessageStepFinish(TypedDict):
     type: str
     tokens: AssistantMessageInfoTokens
 
+
 class AssistantMessageStepWithText(TypedDict):
     id: str
     messageID: str
@@ -162,23 +190,29 @@ class AssistantMessageStepWithText(TypedDict):
     type: str
     text: str
 
-@dataclass 
+
+@dataclass
 class AssistantMessage:
     info: AssistantMessageInfo
-    parts: List[Union[AssistantMessageStepStart, AssistantMessageStepWithText, AssistantMessageStepFinish]]
-    blocked: bool
+    parts: List[
+        Union[
+            AssistantMessageStepStart,
+            AssistantMessageStepWithText,
+            AssistantMessageStepFinish,
+        ]
+    ] = field(default_factory=list)
+    blocked: bool = False
 
     def to_string(self, include_system_prompt: bool = False) -> str:
         s = "<assistant>"
         if include_system_prompt:
             for text in self.info["system"]:
-                s+=f"\n\t<system>{text}</system>\n"
+                s += f"\n\t<system>{text}</system>\n"
         for part in self.parts:
             if "text" in part:
                 if part["type"] == "reasoning":
-                    s+=f"\n\t<reasoning>{part['text']}</reasoning>\n"
+                    s += f"\n\t<reasoning>{part['text']}</reasoning>\n"
                 else:
-                    s+=f"\n\t<answer>{part['text']}</answer>\n"
-        s+="</assistant>"
+                    s += f"\n\t<answer>{part['text']}</answer>\n"
+        s += "</assistant>"
         return s
-

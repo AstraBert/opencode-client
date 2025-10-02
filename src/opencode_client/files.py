@@ -4,12 +4,14 @@ from dataclasses import dataclass
 
 FileOperation = Literal["read", "get_status", "search_by_text", "search_by_name"]
 
+
 @dataclass
 class File:
     added: int
     path: str
     removed: int
-    status: Literal['added', 'deleted','modified']
+    status: Literal["added", "deleted", "modified"]
+
 
 @dataclass
 class Match:
@@ -19,7 +21,11 @@ class Match:
     absolute_offset: int
     submatches: Any
 
+
 @dataclass
-class ReadFile:
-    type: Literal["raw", "patch"]
-    content: str
+class FileInfo:
+    name: str
+    path: str
+    absolute: str
+    type: Literal["file", "directory"]
+    ignored: bool
