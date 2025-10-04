@@ -1,4 +1,5 @@
 import httpx
+import os
 import warnings
 
 from dataclasses import asdict
@@ -237,6 +238,7 @@ class OpenCodeClient:
         self,
         text: Union[str, List[str]],
         file: Optional[Union[str, List[str]]] = None,
+        directory: Optional[str] = None,
         system_message: Optional[str] = None,
         session_id: Optional[str] = None,
     ) -> AssistantMessage:
@@ -245,6 +247,7 @@ class OpenCodeClient:
         Args:
             text (Union[str, List[str]]): Message text or list of texts.
             file (Optional[Union[str, List[str]]]): File path(s) or URL(s).
+            directory (Optional[str]): Directory to read files from.
             system_message (Optional[str]): System prompt.
             session_id (Optional[str]): Target session ID.
 
@@ -264,6 +267,15 @@ class OpenCodeClient:
                 parts.append(TextPart.from_string(t))
         else:
             parts.append(TextPart.from_string(text))
+        if directory:
+            fls = [os.path.join(directory, f) for f in os.listdir(directory) if Path(os.path.join(directory,f)).is_file()]
+            if file:
+                if isinstance(file,str):
+                    file = fls + [file]
+                else:
+                    file += fls
+            else:
+                file = fls
         if file:
             if isinstance(file, list):
                 for f in file:

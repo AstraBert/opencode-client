@@ -87,6 +87,12 @@ response = await client.send_message(
     "Compare these implementations", file=["version1.py", "version2.py"]
 )
 
+# Message with directory of files
+reponse = await client.send_message(
+    "What is the content of the `src/client` directory?",
+    directory="./src/client",
+)
+
 # Message with URL
 response = await client.send_message(
     "Analyze this code", file="https://example.com/code.py"
