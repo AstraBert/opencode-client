@@ -84,8 +84,9 @@ async def test_send_messages(opencode_client: OpenCodeClient) -> None:
     await opencode_client.create_current_session(title="test")
     assistant_message = await opencode_client.send_message(
         text=["Hey there, can you tell me how to install OpenCode python client?"],
-        file=["testfiles/file.txt"],
-        system_message="You are an expert pythonista",
+        file=["README.md"],
+        directory="./testfiles/",
+        system_message="You are an expert pythonist",
     )
     assert len(opencode_client.chat_history) == 2
     assert assistant_message in opencode_client.chat_history
