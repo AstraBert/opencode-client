@@ -267,10 +267,18 @@ class OpenCodeClient:
                 parts.append(TextPart.from_string(t))
         else:
             parts.append(TextPart.from_string(text))
-        if directory:
-            fls = [os.path.join(directory, f) for f in os.listdir(directory) if Path(os.path.join(directory,f)).is_file()]
+        if directory and not Path(directory).is_dir():
+            warnings.warn(
+                f"It was not possible to include files from directory {directory} as it does not exists or it is not a directory"
+            )
+        if directory and Path(directory).is_dir():
+            fls = [
+                os.path.join(directory, f)
+                for f in os.listdir(directory)
+                if Path(os.path.join(directory, f)).is_file()
+            ]
             if file:
-                if isinstance(file,str):
+                if isinstance(file, str):
                     file = fls + [file]
                 else:
                     file += fls
