@@ -2,7 +2,7 @@ import os
 import mimetypes
 
 from dataclasses import dataclass, field
-from typing import List, Union, Dict, TypedDict, Any, Optional
+from typing import List, Union, TypedDict, Any, Optional
 from typing_extensions import NotRequired
 from pathlib import Path
 
@@ -10,6 +10,20 @@ from pathlib import Path
 class Time(TypedDict):
     created: int
     updated: int
+
+
+class ToolsDict(TypedDict):
+    bash: NotRequired[bool]
+    edit: NotRequired[bool]
+    write: NotRequired[bool]
+    read: NotRequired[bool]
+    grep: NotRequired[bool]
+    glob: NotRequired[bool]
+    list: NotRequired[bool]
+    patch: NotRequired[bool]
+    todowrite: NotRequired[bool]
+    todoread: NotRequired[bool]
+    webfetch: NotRequired[bool]
 
 
 @dataclass
@@ -110,7 +124,11 @@ class UserMessage:
     messageID: str = ""
     mode: str = "build"
     system: str = ""
-    tools: Dict[str, bool] = field(default_factory=dict)
+    tools: Optional[ToolsDict] = None
+
+    def __post_init__(self) -> None:
+        if self.tools is None:
+            self.tools = {}
 
     def to_string(self, include_system_prompt: bool = False) -> str:
         s = "<user>"
