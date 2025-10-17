@@ -2,7 +2,6 @@ import httpx
 import os
 import warnings
 
-from dataclasses import asdict
 from pathlib import Path
 from typing import AsyncIterator, Optional, Union, List, cast, Dict
 from contextlib import asynccontextmanager
@@ -128,7 +127,7 @@ class OpenCodeClient:
         Returns:
             AssistantMessage: Assistant's response.
         """
-        message_dict = asdict(message)
+        message_dict = message.to_dict()
         message_dict_copy = message_dict.copy()
         for k, v in message_dict.items():
             if v == type(v)():

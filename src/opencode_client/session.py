@@ -1,15 +1,30 @@
 import os
 import mimetypes
 
-from dataclasses import dataclass, field
-from typing import List, Union, Dict, TypedDict, Any, Optional
+from dataclasses import dataclass, field, asdict
+from typing import List, Union, TypedDict, Any, Optional
 from typing_extensions import NotRequired
 from pathlib import Path
+from .custom_tools import CustomTool
 
 
 class Time(TypedDict):
     created: int
     updated: int
+
+
+class ToolsDict(TypedDict):
+    bash: NotRequired[bool]
+    edit: NotRequired[bool]
+    write: NotRequired[bool]
+    read: NotRequired[bool]
+    grep: NotRequired[bool]
+    glob: NotRequired[bool]
+    list: NotRequired[bool]
+    patch: NotRequired[bool]
+    todowrite: NotRequired[bool]
+    todoread: NotRequired[bool]
+    webfetch: NotRequired[bool]
 
 
 @dataclass
@@ -110,7 +125,28 @@ class UserMessage:
     messageID: str = ""
     mode: str = "build"
     system: str = ""
-    tools: Dict[str, bool] = field(default_factory=dict)
+    tools: Optional[ToolsDict] = None
+    custom_tools: List[CustomTool] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if self.tools is None:
+            self.tools = {}
+        if len(self.custom_tools) > 0:
+            for tool in self.custom_tools:
+                tool.to_file()
+                self.tools[tool.name.lower().replace(" ", "_")] = True  # type: ignore
+            self.custom_tools.clear()
+
+    def to_dict(self) -> dict[str, Any]:
+        dct = asdict(self)
+        dct.pop("custom_tools")
+        return dct
+
+    @classmethod
+    def from_dict(cls, dct: dict) -> "UserMessage":
+        if "custom_tools" not in dct:
+            dct["custom_tools"] = []
+        return cls(**dct)
 
     def to_string(self, include_system_prompt: bool = False) -> str:
         s = "<user>"
