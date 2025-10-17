@@ -1,4 +1,5 @@
 import pytest
+import os
 
 from pathlib import Path
 from typing import List, Union
@@ -14,6 +15,7 @@ from src.opencode_client.session import (
     AssistantMessageStepStart,
     AssistantMessageStepWithText,
 )
+from src.opencode_client.custom_tools import CustomTool
 
 
 def test_textpart_from_string() -> None:
@@ -83,6 +85,59 @@ def test_usermessage_to_string_with_textpart() -> None:
     msg = UserMessage(modelID="m", providerID="p", parts=[TextPart.from_string("hi")])
     out = msg.to_string()
     assert "<text>hi</text>" in out
+
+
+def test_usermessage_tools() -> None:
+    if Path(".opencode/tool/say_hello.ts").exists():
+        os.remove(".opencode/tool/say_hello.ts")
+    custom_tool = CustomTool(
+        name="Say Hello",
+        description="this is a test",
+        fn="return `Hello ${args.name}!`",
+        args={
+            "name": {
+                "description": "name of the person to say hello to",
+                "type": "string",
+            }
+        },
+    )
+    msg = UserMessage(
+        modelID="m",
+        providerID="p",
+        parts=[TextPart.from_string("hi")],
+        custom_tools=[custom_tool],
+        tools={"bash": True},
+    )
+    assert msg.tools is not None
+    assert len(msg.tools) == 2
+    assert len(msg.custom_tools) == 0
+    assert (
+        Path(".opencode/tool/say_hello.ts").exists()
+        and Path(".opencode/tool/say_hello.ts").is_file()
+    )
+    msg_dct = msg.to_dict()
+    assert "custom_tools" not in msg_dct
+    assert len(msg_dct.get("tools", {})) == 2
+    assert "bash" in msg_dct.get("tools", {})
+    assert "say_hello" in msg_dct.get("tools", {})
+    assert msg_dct.get("tools", {}).get("say_hello")
+
+
+def test_usermessage_from_dict() -> None:
+    msg = {
+        "modelID": "m",
+        "providerID": "p",
+        "parts": [TextPart.from_string("hi")],
+    }
+    user_msg = UserMessage.from_dict(msg)
+    assert user_msg.custom_tools == []
+    assert user_msg.modelID == "m"
+    assert user_msg.providerID == "p"
+    assert user_msg.parts == [TextPart.from_string("hi")]
+    assert user_msg.system == ""
+    assert user_msg.messageID == ""
+    assert user_msg.mode == "build"
+    assert user_msg.tools == {}
 
 
 def test_assistantmessage_to_string_with_reasoning_and_answer() -> None:

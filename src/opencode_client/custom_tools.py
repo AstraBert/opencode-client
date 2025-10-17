@@ -63,7 +63,7 @@ class CustomTool:
                     f.write(f"\t\t{arg}: tool.schema.{argspecs.get('type')}()\n")
             f.write("\t},\n")
             f.write("\tasync execute(args) {\n")
-            f.write(self.fn)
+            f.write(f"\t\t{self.fn}\n")
             f.write("\t},\n")
             f.write("})")
         return None
